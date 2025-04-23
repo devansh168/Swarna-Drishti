@@ -46,6 +46,10 @@ def load_forecast():
     return forecast
 
 forecast = load_forecast()
+if st.button("🔁 Refresh Forecast Data"):
+    st.cache_data.clear()
+    st.experimental_rerun()
+
 
 # Debug Info (can remove later)
 st.write("Last date in forecast:", forecast['ds'].max())
