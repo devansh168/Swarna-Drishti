@@ -94,7 +94,8 @@ st.caption("Note: Forecast available for the next 60 days only.")
 target_date = st.date_input("Select a future date", value=pd.to_datetime("2025-04-10"))
 target_date = pd.to_datetime(target_date)
 
-result = forecast[forecast["ds"] == target_date]
+result = forecast[forecast["ds"].dt.date == target_date.date()]
+
 
 if not result.empty:
     predicted_price = result["yhat"].values[0]
