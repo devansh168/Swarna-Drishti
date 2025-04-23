@@ -42,20 +42,10 @@ st.markdown("""
 @st.cache_data
 def load_forecast():
     forecast = pd.read_csv("forecast.csv")
-
-    # OPTIONAL: Just select only the columns your app actually needs
-    forecast = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]]
-
-    # Convert 'ds' to datetime safely
-    forecast["ds"] = pd.to_datetime(forecast["ds"], errors="coerce")
-
-    # Drop rows where date couldn't be parsed
-    forecast.dropna(subset=["ds"], inplace=True)
-
+    forecast["ds"] = pd.to_datetime(forecast["ds"])
     return forecast
 
 forecast = load_forecast()
-
 
 # Debug Info (can remove later)
 st.write("Last date in forecast:", forecast['ds'].max())
@@ -94,9 +84,7 @@ st.caption("Note: Forecast available for the next 60 days only.")
 target_date = st.date_input("Select a future date", value=pd.to_datetime("2025-04-10"))
 target_date = pd.to_datetime(target_date)
 
-result = forecast[forecast["ds"].apply(lambda x: x.date()) == target_date.date()]
-
-
+result = forecast[forecast["ds"] == target_date]
 
 if not result.empty:
     predicted_price = result["yhat"].values[0]
