@@ -46,10 +46,6 @@ def load_forecast():
     return forecast
 
 forecast = load_forecast()
-if st.button("🔁 Refresh Forecast Data"):
-    st.cache_data.clear()
-    st.success("✅ Forecast cache cleared! Please manually rerun the app.")
-
 
 
 # Debug Info (can remove later)
