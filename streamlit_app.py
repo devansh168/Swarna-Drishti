@@ -42,7 +42,16 @@ st.markdown("""
 @st.cache_data
 def load_forecast():
     forecast = pd.read_csv("forecast.csv")
-    forecast["ds"] = pd.to_datetime(forecast["ds"])
+
+    # OPTIONAL: Just select only the columns your app actually needs
+    forecast = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+
+    # Convert 'ds' to datetime safely
+    forecast["ds"] = pd.to_datetime(forecast["ds"], errors="coerce")
+
+    # Drop rows where date couldn't be parsed
+    forecast.dropna(subset=["ds"], inplace=True)
+
     return forecast
 
 forecast = load_forecast()
