@@ -1,18 +1,10 @@
-# SWARNA DRISHTI – AI Gold Price Forecasting App
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 from prophet.plot import plot_plotly
 
-# ----------------------
-# Set Page Layout First
-# ----------------------
 st.set_page_config(page_title="Swarna Drishti", layout="wide")
 
-# ----------------------
-# Background Styling (Optional)
-# ----------------------
 st.markdown("""
     <style>
     .reportview-container {
@@ -23,9 +15,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ----------------------
-# Title and Subtitle
-# ----------------------
 st.markdown("<h1 style='color:gold; text-align:center;'>Swarna Drishti</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='color:gold; text-align:center;'>AI-Powered Gold Price Oracle</h3>", unsafe_allow_html=True)
 st.markdown("""
@@ -36,9 +25,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ----------------------
-# Load Forecast Data
-# ----------------------
 @st.cache_data
 def load_forecast():
     forecast = pd.read_csv("forecast.csv")
@@ -47,13 +33,9 @@ def load_forecast():
 
 forecast = load_forecast()
 
-# Debug Info (can remove later)
 st.write("Last date in forecast:", forecast['ds'].max())
 st.write("Number of forecasted days:", len(forecast))
 
-# ----------------------
-# Overview Dashboard
-# ----------------------
 col1, col2, col3 = st.columns(3)
 latest_price = forecast.iloc[-1]["yhat"]
 change = latest_price - forecast.iloc[-60]["yhat"]
@@ -63,9 +45,6 @@ col1.metric("Latest Gold Price", f"₹{latest_price:,.2f}")
 col2.metric("Price Change in 60 Days", f"₹{change:,.2f}", f"{percent:.2f}%")
 col3.metric("Investment Tip", "Consider investing now" if percent > 2 else "Better to wait")
 
-# ----------------------
-# Forecast Graph
-# ----------------------
 st.subheader("📈 Gold Price Prediction (Next 60 Days)")
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], mode="lines", name="Predicted Price", line=dict(color="gold")))
@@ -74,11 +53,7 @@ fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_lower"], mode="lines
 fig.update_layout(title="Gold Price Forecast for Next 60 Days", xaxis_title="Date", yaxis_title="Gold Price (INR per 10g)", template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)")
 st.plotly_chart(fig, use_container_width=True)
 
-# ----------------------
-# Predict Price for a Specific Date
-# ----------------------
 st.subheader("🔍 Get Predicted Gold Price for a Specific Date")
-
 st.caption("Note: Forecast available for the next 60 days only.")
 
 target_date = st.date_input("Select a future date", value=pd.to_datetime("2025-04-10"))
@@ -103,9 +78,6 @@ if not result.empty:
 else:
     st.error("❌ Prediction not available for the selected date. Try a date within the next 60 days.")
 
-# ----------------------
-# Historical Gold Price Graphs (India and Global Separately)
-# ----------------------
 st.subheader("📉 Historical Gold Price in India")
 try:
     gold_df = pd.read_csv("gold this final.csv")
@@ -123,9 +95,6 @@ try:
 except Exception as e:
     st.warning("Unable to load historical gold price data. Ensure 'gold this final.csv' has the required columns.")
 
-# ----------------------
-# Time Range Filtering
-# ----------------------
 st.subheader("🗕️ Filter Forecast Data by Date Range")
 start_date = pd.to_datetime(st.date_input("Start Date", value=pd.to_datetime("2023-01-01")))
 end_date = pd.to_datetime(st.date_input("End Date", value=pd.to_datetime("2025-01-01")))
@@ -133,8 +102,5 @@ filtered_data = forecast[(forecast['ds'] >= start_date) & (forecast['ds'] <= end
 filtered_data.set_index("ds", inplace=True)
 st.line_chart(filtered_data["yhat"])
 
-# ----------------------
-# Forecast Table
-# ----------------------
 with st.expander("📊 View Raw Forecast Data Table"):
     st.dataframe(forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(60))
