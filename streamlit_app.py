@@ -1,106 +1,149 @@
+# streamlit_app.py
+
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objs as go
-from prophet.plot import plot_plotly
+from datetime import datetime
 
+# ----------------------------
+# 💠 Basic Page Setup
+# ----------------------------
 st.set_page_config(page_title="Swarna Drishti", layout="wide")
-
-st.markdown("""
+st.markdown(
+    """
     <style>
-    .reportview-container {
-        background: url('https://your-gold-background-image-link.jpg');
-        background-size: cover;
-        background-position: center;
+    body {
+        background-color: #111111;
+        color: #f5f5f5;
+    }
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    .metric-container {
+        background-color: #202020;
+        padding: 1.2rem;
+        border-radius: 0.8rem;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-st.markdown("<h1 style='color:gold; text-align:center;'>Swarna Drishti</h1>", unsafe_allow_html=True)
-st.markdown("<h3 style='color:gold; text-align:center;'>AI-Powered Gold Price Oracle</h3>", unsafe_allow_html=True)
-st.markdown("""
-    <div style="text-align:center; color: white;">
-        <p style="font-size:16px;">
-            Welcome to Swarna Drishti! Get your AI-powered gold price predictions and investment tips.
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+# ----------------------------
+# 🌟 Title & Hero Section
+# ----------------------------
+st.markdown("<h1 style='text-align:center; color:gold;'>Swarna Drishti</h1>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align:center; color:white;'>Your AI-Powered 24KT Gold Price Oracle</h4>", unsafe_allow_html=True)
+st.markdown("<hr style='border: 1px solid gold;'>", unsafe_allow_html=True)
 
+# ----------------------------
+# 📦 Load Data
+# ----------------------------
 @st.cache_data
 def load_forecast():
-    forecast = pd.read_csv("forecast.csv")
-    forecast["ds"] = pd.to_datetime(forecast["ds"])
-    return forecast
+    df = pd.read_csv("forecast.csv")
+    df["Date"] = pd.to_datetime(df["Date"])
+    df.sort_values("Date", inplace=True)
+    return df
 
-forecast = load_forecast()
+df = load_forecast()
 
-st.write("Last date in forecast:", forecast['ds'].max())
-st.write("Number of forecasted days:", len(forecast))
+# ----------------------------
+# 📈 Latest Metrics
+# ----------------------------
+latest = df.iloc[-1]
+previous = df.iloc[-2]
+delta = latest["Trident_Forecast"] - previous["Trident_Forecast"]
+percent_change = (delta / previous["Trident_Forecast"]) * 100
 
 col1, col2, col3 = st.columns(3)
-latest_price = forecast.iloc[-1]["yhat"]
-change = latest_price - forecast.iloc[-60]["yhat"]
-percent = (change / forecast.iloc[-60]["yhat"]) * 100
 
-col1.metric("Latest Gold Price", f"₹{latest_price:,.2f}")
-col2.metric("Price Change in 60 Days", f"₹{change:,.2f}", f"{percent:.2f}%")
-col3.metric("Investment Tip", "Consider investing now" if percent > 2 else "Better to wait")
+with col1:
+    st.metric(label="📅 Latest Forecast Date", value=str(latest["Date"].date()))
 
-st.subheader("📈 Gold Price Prediction (Next 60 Days)")
+
+with col2:
+    st.metric(label="📈 24KT Gold Price (Predicted)", value=f"₹{latest['Trident_Forecast']:,.2f}")
+
+with col3:
+    st.metric(
+        label="📊 1-Day Change",
+        value=f"₹{delta:,.2f}",
+        delta=f"{percent_change:.2f}%"
+    )
+
+# ----------------------------
+# 📈 Forecast Chart (Next 7 Days)
+# ----------------------------
+st.markdown("### 📈 Next 7 Days Forecast - 24KT Gold (INR per 10g)")
+future_df = df[df["Date"] > df["Date"].max() - pd.Timedelta(days=7)]
+
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], mode="lines", name="Predicted Price", line=dict(color="gold")))
-fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_upper"], mode="lines", name="Upper Bound", line=dict(dash='dot', color="lightgreen")))
-fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_lower"], mode="lines", name="Lower Bound", line=dict(dash='dot', color="salmon")))
-fig.update_layout(title="Gold Price Forecast for Next 60 Days", xaxis_title="Date", yaxis_title="Gold Price (INR per 10g)", template="plotly_dark", plot_bgcolor="rgba(0,0,0,0)")
+fig.add_trace(go.Scatter(
+    x=future_df["Date"],
+    y=future_df["Trident_Forecast"],
+    mode="lines+markers",
+    name="Forecast",
+    line=dict(color="gold", width=2)
+))
+fig.update_layout(
+    title="24KT Gold Price Forecast (Next 7 Days)",
+    xaxis_title="Date",
+    yaxis_title="Predicted Price (INR)",
+    template="plotly_dark"
+)
 st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("🔍 Get Predicted Gold Price for a Specific Date")
-st.caption("Note: Forecast available for the next 60 days only.")
-
-target_date = st.date_input("Select a future date", value=pd.to_datetime("2025-04-10"))
-target_date = pd.to_datetime(target_date)
-
-result = forecast[forecast["ds"] == target_date]
-
-if not result.empty:
-    predicted_price = result["yhat"].values[0]
-    lower_bound = result["yhat_lower"].values[0]
-    upper_bound = result["yhat_upper"].values[0]
-
-    st.success(f"📅 Predicted Price on {target_date.date()}: ₹{predicted_price:,.2f}")
-    st.info(f"🟢 Confidence Range: ₹{lower_bound:,.2f} – ₹{upper_bound:,.2f}")
-
-    if predicted_price > forecast.iloc[-1]["yhat"]:
-        st.success("✅ Prices expected to rise — Consider investing.")
-    elif predicted_price < forecast.iloc[-1]["yhat"]:
-        st.warning("⚠️ Prices expected to dip — Better to wait.")
-    else:
-        st.info("📊 Price stable — Invest as needed.")
+# ----------------------------
+# 💡 Investment Suggestion
+# ----------------------------
+st.markdown("### 💡 Investment Insight")
+if future_df["Trident_Forecast"].iloc[-1] > future_df["Trident_Forecast"].iloc[0]:
+    st.success("📈 The gold price is on a rising trend — a good time to invest.")
+elif future_df["Trident_Forecast"].iloc[-1] < future_df["Trident_Forecast"].iloc[0]:
+    st.warning("📉 The gold price is declining — you may wait before investing.")
 else:
-    st.error("❌ Prediction not available for the selected date. Try a date within the next 60 days.")
+    st.info("⏸️ The price seems stable — neutral investment window.")
 
-st.subheader("📉 Historical Gold Price in India")
-try:
-    gold_df = pd.read_csv("gold this final.csv")
-    gold_df["Date"] = pd.to_datetime(gold_df["Date"], dayfirst=True)
-    fig_india = go.Figure()
-    fig_india.add_trace(go.Scatter(x=gold_df["Date"], y=gold_df["Price 10g (in INR)"], mode="lines", name="India Gold Price (10g)", line=dict(color="orange")))
-    fig_india.update_layout(title="Historical Gold Price in India", xaxis_title="Date", yaxis_title="Price (INR)", template="plotly_white")
-    st.plotly_chart(fig_india, use_container_width=True)
+# ----------------------------
+# 🔍 Predict Price on Selected Date
+# ----------------------------
+st.markdown("### 🔍 Predict Gold Price for a Specific Date")
+with st.form("predict_form"):
+    selected_date = st.date_input("Choose a date to predict", value=df["Date"].max())
+    submitted = st.form_submit_button("🔎 Predict Price")
 
-    st.subheader("🌍 Historical Global Gold Price (LBMA)")
-    fig_global = go.Figure()
-    fig_global.add_trace(go.Scatter(x=gold_df["Date"], y=gold_df["GGP (LBMA)"], mode="lines", name="Global Gold Price (LBMA)", line=dict(color="green")))
-    fig_global.update_layout(title="Historical Global Gold Price (LBMA)", xaxis_title="Date", yaxis_title="Price (USD)", template="plotly_white")
-    st.plotly_chart(fig_global, use_container_width=True)
-except Exception as e:
-    st.warning("Unable to load historical gold price data. Ensure 'gold this final.csv' has the required columns.")
+if submitted:
+    selected_date = pd.to_datetime(selected_date)
+    match = df[df["Date"] == selected_date]
+    if not match.empty:
+        price = match["Trident_Forecast"].values[0]
+        st.success(f"📆 Predicted 24KT Gold Price on {selected_date.date()}: ₹{price:,.2f}")
+    else:
+        st.error("❌ Forecast not available for this date. Please choose within the forecast range.")
 
-st.subheader("🗕️ Filter Forecast Data by Date Range")
-start_date = pd.to_datetime(st.date_input("Start Date", value=pd.to_datetime("2023-01-01")))
-end_date = pd.to_datetime(st.date_input("End Date", value=pd.to_datetime("2025-01-01")))
-filtered_data = forecast[(forecast['ds'] >= start_date) & (forecast['ds'] <= end_date)].copy()
-filtered_data.set_index("ds", inplace=True)
-st.line_chart(filtered_data["yhat"])
+# ----------------------------
+# 📋 Table of Last 7 Days Predicted Prices
+# ----------------------------
+st.markdown("### 📋 Last 7 Days of 24KT Gold Price Predictions")
+last_7_days = df.tail(7).copy()
+last_7_days["Date"] = last_7_days["Date"].dt.strftime('%Y-%m-%d')
+st.dataframe(
+    last_7_days.rename(columns={
+        "Date": "Date",
+        "Trident_Forecast": "Predicted Price (INR)"
+    }).set_index("Date"),
+    use_container_width=True
+)
 
-with st.expander("📊 View Raw Forecast Data Table"):
-    st.dataframe(forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(60))
+# ----------------------------
+# Footer
+# ----------------------------
+st.markdown("---")
+st.markdown(
+    "<p style='text-align:center; color:gray;'>© 2025 Swarna Drishti | Powered by Trident Forecast</p>",
+    unsafe_allow_html=True
+)
