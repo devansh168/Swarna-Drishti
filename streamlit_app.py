@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 from datetime import datetime, date
-st.cache_data.clear()
+
 st.set_page_config(page_title="Swarna Drishti", layout="wide")
 
 st.markdown("<h1 style='text-align:center; color:gold;'>Swarna Drishti</h1>", unsafe_allow_html=True)
@@ -194,4 +194,3 @@ with col_stat3:
     min_date_str = df_selected.iloc[min_idx]["Date"].strftime("%Y-%m-%d")
     st.metric("🔻 Lowest Price", f"₹{min_price:,.2f}")
     st.caption(f"Expected on {min_date_str}")
-
