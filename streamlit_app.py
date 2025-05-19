@@ -194,3 +194,4 @@ with col_stat3:
     min_date_str = df_selected.iloc[min_idx]["Date"].strftime("%Y-%m-%d")
     st.metric("🔻 Lowest Price", f"₹{min_price:,.2f}")
     st.caption(f"Expected on {min_date_str}")
+st.cache_data.clear()
